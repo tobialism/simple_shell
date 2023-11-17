@@ -1,8 +1,7 @@
 #include "shell.h"
 
-
 /**
- * hsh - entry main shell loop
+ * hsh - main shell loop
  * @info: the parameter & return info struct
  * @av: the argument vector from main()
  *
@@ -10,22 +9,21 @@
  */
 int hsh(info_t *info, char **av)
 {
-	ssize_t t = 0;
-	int u = 0;
+	ssize_t r = 0;
+	int builtin_ret = 0;
 
-
-	while (t != -1 && u != -2)
+	while (r != -1 && builtin_ret != -2)
 	{
 		clear_info(info);
 		if (interactive(info))
 			_puts("$ ");
 		_eputchar(BUF_FLUSH);
-		t = get_input(info);
-		if (t != -1)
+		r = get_input(info);
+		if (r != -1)
 		{
 			set_info(info, av);
-			u = find_builtin1(info);
-			if (u == -1)
+			builtin_ret = find_builtin(info);
+			if (builtin_ret == -1)
 				find_cmd(info);
 		}
 		else if (interactive(info))
@@ -36,18 +34,17 @@ int hsh(info_t *info, char **av)
 	free_info(info, 1);
 	if (!interactive(info) && info->status)
 		exit(info->status);
-	if (u == -2)
+	if (builtin_ret == -2)
 	{
 		if (info->err_num == -1)
 			exit(info->status);
 		exit(info->err_num);
 	}
-	return (u);
+	return (builtin_ret);
 }
 
-
 /**
- * find_builtin2 - entry finds a builtin command
+ * find_builtin - entry finds a builtin command
  * @info: the parameter & return info struct
  *
  * Return: -1 if builtin not found,
@@ -55,9 +52,9 @@ int hsh(info_t *info, char **av)
  *			1 if builtin found but not successful,
  *			-2 if builtin signals exit()
  */
-int find_builtin2(info_t *info)
+int find_builtin(info_t *info)
 {
-	int t, u = -1;
+	int i, built_in_ret = -1;
 	builtin_table builtintbl[] = {
 		{"exit", _myexit},
 		{"env", _myenv},
@@ -70,17 +67,15 @@ int find_builtin2(info_t *info)
 		{NULL, NULL}
 	};
 
-
-	for (t = 0; builtintbl[t].type; t++)
-		if (_strcmp(info->argv[0], builtintbl[t].type) == 0)
+	for (i = 0; builtintbl[i].type; i++)
+		if (_strcmp(info->argv[0], builtintbl[i].type) == 0)
 		{
 			info->line_count++;
-			u = builtintbl[t].func(info);
+			built_in_ret = builtintbl[i].func(info);
 			break;
 		}
-	return (u);
+	return (built_in_ret);
 }
-
 
 /**
  * find_cmd - entry finds a command in PATH
@@ -91,8 +86,7 @@ int find_builtin2(info_t *info)
 void find_cmd(info_t *info)
 {
 	char *path = NULL;
-	int t, k;
-
+	int i, k;
 
 	info->path = info->argv[0];
 	if (info->linecount_flag == 1)
@@ -100,12 +94,11 @@ void find_cmd(info_t *info)
 		info->line_count++;
 		info->linecount_flag = 0;
 	}
-	for (t = 0, k = 0; info->arg[t]; t++)
-		if (!is_delim(info->arg[t], " \t\n"))
+	for (i = 0, k = 0; info->arg[i]; i++)
+		if (!is_delim(info->arg[i], " \t\n"))
 			k++;
 	if (!k)
 		return;
-
 
 	path = find_path(info, _getenv(info, "PATH="), info->argv[0]);
 	if (path)
@@ -126,7 +119,6 @@ void find_cmd(info_t *info)
 	}
 }
 
-
 /**
  * fork_cmd - entry forks a an exec thread to run cmd
  * @info: the parameter & return info struct
@@ -136,7 +128,6 @@ void find_cmd(info_t *info)
 void fork_cmd(info_t *info)
 {
 	pid_t child_pid;
-
 
 	child_pid = fork();
 	if (child_pid == -1)
